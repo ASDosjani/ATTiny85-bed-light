@@ -1,18 +1,19 @@
 #include <CapacitiveSensor.h>
 
 // Debug mode (set to 1 to enable serial debugging, 0 to disable)
-#define DEBUG_MODE 0
+#define DEBUG_MODE 0  // Changed to 0 by default
 
 #if DEBUG_MODE
   #include <SoftwareSerial.h>
   #define DEBUG_TX_PIN PB4         // Software Serial TX pin (physical pin 3)
-  // Create software serial object
   SoftwareSerial mySerial(255, DEBUG_TX_PIN); // RX (not used), TX
   #define DEBUG_PRINT(x) mySerial.print(x)
   #define DEBUG_PRINTLN(x) mySerial.println(x)
+  #define DEBUG_BEGIN() mySerial.begin(38400)
 #else
   #define DEBUG_PRINT(x)
   #define DEBUG_PRINTLN(x)
+  #define DEBUG_BEGIN()
 #endif
 
 // Pin definitions
@@ -42,44 +43,36 @@ unsigned long turnOnTime = 0;    // When the light was turned on
 void setup() {
   pinMode(MOSFET_PIN, OUTPUT);
   
-  #if DEBUG_MODE
-    // Initialize software serial
-    mySerial.begin(9600);
-    DEBUG_PRINTLN(F("Starting up..."));
-  #endif
+  DEBUG_BEGIN();
+  DEBUG_PRINTLN(F("Starting up..."));
   
   // Initialize the capacitive sensor with lower timeout
-  touchSensor.set_CS_Timeout_Millis(100);    // Add timeout to prevent hanging
-  touchSensor.set_CS_AutocaL_Millis(0xFFFFFFFF);  // Turn off autocalibration
+  touchSensor.set_CS_Timeout_Millis(100);
+  touchSensor.set_CS_AutocaL_Millis(0xFFFFFFFF);
   
-  #if DEBUG_MODE
-    DEBUG_PRINTLN(F("Setup complete"));
-  #endif
+  DEBUG_PRINTLN(F("Setup complete"));
 }
 
 void loop() {
-  // Read capacitive sensor
   long value = touchSensor.capacitiveSensor(30);
   
   // Check auto-off timer
   if (isOn && (millis() - turnOnTime >= AUTO_OFF_TIME)) {
     isOn = false;
-    wasTouched = false;  // Reset touch state when auto-off triggers
+    wasTouched = false;
     targetBrightness = 0;
     DEBUG_PRINTLN(F("Auto-off triggered"));
   }
   
-  #if DEBUG_MODE
-    // Debug output
-    DEBUG_PRINT(F("Raw Sensor: "));
-    DEBUG_PRINT(value);
-    DEBUG_PRINT(F(" State: "));
-    DEBUG_PRINT(isOn ? "ON" : "OFF");
-    DEBUG_PRINT(F(" Touched: "));
-    DEBUG_PRINT(wasTouched ? "YES" : "NO");
-    DEBUG_PRINT(F(" Brightness: "));
-    DEBUG_PRINTLN(currentBrightness);
-  #endif
+  // Debug output
+  DEBUG_PRINT(F("Raw Sensor: "));
+  DEBUG_PRINT(value);
+  DEBUG_PRINT(F(" State: "));
+  DEBUG_PRINT(isOn ? "ON" : "OFF");
+  DEBUG_PRINT(F(" Touched: "));
+  DEBUG_PRINT(wasTouched ? "YES" : "NO");
+  DEBUG_PRINT(F(" Brightness: "));
+  DEBUG_PRINTLN(currentBrightness);
   
   // Check for touch and release
   if (value > TOUCH_THRESHOLD) {
