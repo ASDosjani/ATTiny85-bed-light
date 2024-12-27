@@ -22,7 +22,7 @@
 #define MOSFET_PIN PB0     // PWM output pin for MOSFET (physical pin 5)
 
 // Constants
-#define TOUCH_THRESHOLD 150     // Adjust this value based on your setup
+#define TOUCH_THRESHOLD 240     // Adjust this value based on your setup
 #define RELEASE_THRESHOLD 50    // Threshold to detect release
 #define FADE_SPEED 1          // Lower number = slower fade
 #define DEBOUNCE_DELAY 500     // Delay to prevent multiple triggers
@@ -39,6 +39,17 @@ int currentBrightness = 0;
 int targetBrightness = 0;
 unsigned long lastTouchTime = 0;
 unsigned long turnOnTime = 0;    // When the light was turned on
+bool firstTime = true;       // Flag for first touch after startup
+
+// Helper function to handle millis() overflow
+unsigned long getElapsedTime(unsigned long startTime) {
+  unsigned long currentTime = millis();
+  // Handle overflow
+  if (currentTime < startTime) {
+    return (0xFFFFFFFF - startTime) + currentTime;
+  }
+  return currentTime - startTime;
+}
 
 void setup() {
   pinMode(MOSFET_PIN, OUTPUT);
@@ -56,8 +67,8 @@ void setup() {
 void loop() {
   long value = touchSensor.capacitiveSensor(30);
   
-  // Check auto-off timer
-  if (isOn && (millis() - turnOnTime >= AUTO_OFF_TIME)) {
+  // Check auto-off timer using overflow-safe comparison
+  if (isOn && (getElapsedTime(turnOnTime) >= AUTO_OFF_TIME)) {
     isOn = false;
     wasTouched = false;
     targetBrightness = 0;
@@ -75,20 +86,26 @@ void loop() {
   DEBUG_PRINTLN(currentBrightness);
   
   // Check for touch and release
-  if (value > TOUCH_THRESHOLD) {
-    wasTouched = true;  // Mark as touched
-  } 
-  else if (value < RELEASE_THRESHOLD && wasTouched && (millis() - lastTouchTime > DEBOUNCE_DELAY)) {
-    // Toggle state only on release
-    isOn = !isOn;
-    targetBrightness = isOn ? MAX_BRIGHTNESS : 0;
-    lastTouchTime = millis();
-    if (isOn) {
-      turnOnTime = millis();  // Reset the auto-off timer when turned on
+  if (value > TOUCH_THRESHOLD && !wasTouched) {
+    wasTouched = true;
+    if (firstTime) {
+      lastTouchTime = millis() - DEBOUNCE_DELAY - 1;  // Make first touch work immediately
+      firstTime = false;
+    } else {
+      lastTouchTime = millis();
     }
+    DEBUG_PRINTLN(F("Touch detected"));
   }
-  else if (value < RELEASE_THRESHOLD) {
-    wasTouched = false;  // Reset touch state if value is below threshold
+  else if (value < RELEASE_THRESHOLD && wasTouched) {
+    if (getElapsedTime(lastTouchTime) > DEBOUNCE_DELAY) {
+      isOn = !isOn;
+      targetBrightness = isOn ? MAX_BRIGHTNESS : 0;
+      if (isOn) {
+        turnOnTime = millis();
+      }
+      DEBUG_PRINTLN(F("Release detected - toggling state"));
+    }
+    wasTouched = false;
   }
 
   // Fade handling
