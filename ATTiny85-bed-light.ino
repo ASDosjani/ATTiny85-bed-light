@@ -86,7 +86,6 @@ void loop() {
     if (isOn) {
       turnOnTime = millis();  // Reset the auto-off timer when turned on
     }
-    wasTouched = false;  // Reset touch state
   }
   else if (value < RELEASE_THRESHOLD) {
     wasTouched = false;  // Reset touch state if value is below threshold
