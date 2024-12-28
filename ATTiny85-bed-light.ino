@@ -22,9 +22,9 @@
 #define MOSFET_PIN PB0     // PWM output pin for MOSFET (physical pin 5)
 
 // Constants
-#define TOUCH_THRESHOLD 240     // Adjust this value based on your setup
-#define RELEASE_THRESHOLD 50    // Threshold to detect release
-#define FADE_SPEED 1          // Lower number = slower fade
+#define TOUCH_THRESHOLD 350     // Adjust this value based on your setup
+#define RELEASE_THRESHOLD 180    // Threshold to detect release
+#define FADE_SPEED 5          // Lower number = slower fade
 #define DEBOUNCE_DELAY 500     // Delay to prevent multiple triggers
 #define MAX_BRIGHTNESS 255     // Maximum LED brightness
 #define AUTO_OFF_TIME 600000   // Auto off after 10 minutes (600000ms)
@@ -86,26 +86,29 @@ void loop() {
   DEBUG_PRINTLN(currentBrightness);
   
   // Check for touch and release
-  if (value > TOUCH_THRESHOLD && !wasTouched) {
-    wasTouched = true;
-    if (firstTime) {
-      lastTouchTime = millis() - DEBOUNCE_DELAY - 1;  // Make first touch work immediately
-      firstTime = false;
-    } else {
-      lastTouchTime = millis();
+  if (value > TOUCH_THRESHOLD) {
+    if (!wasTouched) {  // Only toggle state on initial touch
+      if (firstTime) {
+        lastTouchTime = millis() - DEBOUNCE_DELAY - 1;  // Make first touch work immediately
+        firstTime = false;
+      }
+      
+      if (getElapsedTime(lastTouchTime) > DEBOUNCE_DELAY) {
+        wasTouched = true;
+        // Toggle state immediately on touch
+        isOn = !isOn;
+        targetBrightness = isOn ? MAX_BRIGHTNESS : 0;
+        if (isOn) {
+          turnOnTime = millis();
+        }
+        DEBUG_PRINTLN(F("Touch detected - toggling state"));
+      }
     }
-    DEBUG_PRINTLN(F("Touch detected"));
+    lastTouchTime = millis();  // Update time continuously while touched
   }
   else if (value < RELEASE_THRESHOLD && wasTouched) {
-    if (getElapsedTime(lastTouchTime) > DEBOUNCE_DELAY) {
-      isOn = !isOn;
-      targetBrightness = isOn ? MAX_BRIGHTNESS : 0;
-      if (isOn) {
-        turnOnTime = millis();
-      }
-      DEBUG_PRINTLN(F("Release detected - toggling state"));
-    }
     wasTouched = false;
+    DEBUG_PRINTLN(F("Release detected"));
   }
 
   // Fade handling
@@ -118,5 +121,5 @@ void loop() {
   // Output to MOSFET
   analogWrite(MOSFET_PIN, currentBrightness);
 
-  delay(1);
+  delay(4);
 }
