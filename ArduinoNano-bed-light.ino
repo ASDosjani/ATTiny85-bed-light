@@ -1,30 +1,27 @@
 #include <CapacitiveSensor.h>
 
 // Debug mode (set to 1 to enable serial debugging, 0 to disable)
-#define DEBUG_MODE 0  // Changed to 0 by default
+#define DEBUG_MODE 0
 
 #if DEBUG_MODE
-  #include <SoftwareSerial.h>
-  #define DEBUG_TX_PIN PB4         // Software Serial TX pin (physical pin 3)
-  SoftwareSerial mySerial(255, DEBUG_TX_PIN); // RX (not used), TX
-  #define DEBUG_PRINT(x) mySerial.print(x)
-  #define DEBUG_PRINTLN(x) mySerial.println(x)
-  #define DEBUG_BEGIN() mySerial.begin(38400)
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+  #define DEBUG_BEGIN() Serial.begin(115200)
 #else
   #define DEBUG_PRINT(x)
   #define DEBUG_PRINTLN(x)
   #define DEBUG_BEGIN()
 #endif
 
-// Pin definitions
-#define SEND_PIN PB1       // Capacitive sensor send pin (physical pin 6)
-#define RECEIVE_PIN PB2    // Capacitive sensor receive pin (physical pin 7)
-#define MOSFET_PIN PB0     // PWM output pin for MOSFET (physical pin 5)
+// Pin definitions for Arduino Nano
+#define SEND_PIN 6        // Capacitive sensor send pin
+#define RECEIVE_PIN 8     // Capacitive sensor receive pin
+#define MOSFET_PIN 3      // PWM output pin for MOSFET
 
 // Constants
-#define TOUCH_THRESHOLD 350     // Adjust this value based on your setup
-#define RELEASE_THRESHOLD 180    // Threshold to detect release
-#define FADE_SPEED 5          // Lower number = slower fade
+#define TOUCH_THRESHOLD 300     // Adjust this value based on your setup
+#define RELEASE_THRESHOLD 150   // Threshold to detect release
+#define FADE_SPEED 5           // Lower number = slower fade
 #define DEBOUNCE_DELAY 500     // Delay to prevent multiple triggers
 #define MAX_BRIGHTNESS 255     // Maximum LED brightness
 #define AUTO_OFF_TIME 600000   // Auto off after 10 minutes (600000ms)
@@ -57,8 +54,7 @@ void setup() {
   DEBUG_BEGIN();
   DEBUG_PRINTLN(F("Starting up..."));
   
-  // Initialize the capacitive sensor with lower timeout
-  touchSensor.set_CS_Timeout_Millis(100);
+  // Initialize the capacitive sensor
   touchSensor.set_CS_AutocaL_Millis(0xFFFFFFFF);
   
   DEBUG_PRINTLN(F("Setup complete"));
